@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">PRTracker</string>
+    <string name="fab_desc">Add new lift</string>
+    <string name="lift_exercise_header">Exercise:</string>
+    <string name="lift_weight_header">Weight:</string>
+    <string name="lift_date_header">Date:</string>
+    <string name="lift_desc_header">Description:</string>
+    <string name="weight_type_kilograms">kgs</string>
+    <string name="weight_type_pounds">lbs</string>
+</resources>

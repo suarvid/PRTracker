@@ -2,11 +2,10 @@ package se.umu.arsu0013.prtracker
 
 import android.content.Context
 import android.content.Intent
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.CaptureResult
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -14,13 +13,11 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.Observer
 import java.io.File
-import java.lang.IllegalArgumentException
 import java.util.*
 
 private const val ARG_LIFT_ID = "lift_id"
@@ -46,8 +43,14 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
     private lateinit var dateButton: Button
     private lateinit var descriptionText: EditText
     private lateinit var videoView: VideoView
-    private lateinit var cameraImage: ImageView
+    private lateinit var thumbnailImage: ImageView
     private lateinit var weightTypeButton: ToggleButton
+
+
+    val launcher = registerForActivityResult<Uri, Bitmap>(
+        ActivityResultContracts.TakeVideo()) {
+
+    }
 
 
     private val liftDetailViewModel: LiftDetailViewModel by lazy {
@@ -96,7 +99,7 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
         dateButton = view.findViewById(R.id.buttonDate) as Button
         descriptionText = view.findViewById(R.id.editTextDescription) as EditText
         videoView = view.findViewById(R.id.videoViewLift) as VideoView
-        cameraImage = view.findViewById(R.id.imageViewCameraIcon) as ImageView
+        thumbnailImage = view.findViewById(R.id.imageViewCameraIcon) as ImageView
         weightTypeButton = view.findViewById(R.id.toggleButtonWeightType) as ToggleButton
 
         return view
@@ -126,7 +129,7 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
             }
         }
 
-        cameraImage.setOnClickListener {
+        thumbnailImage.setOnClickListener {
             dispatchTakeVideoIntent()
         }
 
@@ -179,6 +182,7 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
         configureWeightTypeButton()
         configureVideoUri()
         configureVideoView()
+
     }
 
 
@@ -224,12 +228,29 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
         this.videoUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.fileprovider", file)
     }
 
+    /*
+        TODO: Clean this up, and make sure that the black image with a camera does not flash
+        before the image changes to the existing thumbnail
+        Probably only have to change the order of function calls
+     */
     private fun configureVideoView() {
         if (videoFileExists()) {
             val mediaController = MediaController(requireContext())
             videoView.setMediaController(mediaController)
-            cameraImage.isVisible = false
+            thumbnailImage.isVisible = false
             videoView.setVideoURI(videoUri)
+            val metaDataRetreiver = MediaMetadataRetriever()
+            metaDataRetreiver.setDataSource(requireContext(), videoUri)
+            val bitMap = metaDataRetreiver.frameAtTime
+            thumbnailImage.setImageBitmap(bitMap)
+            thumbnailImage.isVisible = true
+            thumbnailImage.setOnClickListener {
+                thumbnailImage.isVisible = false
+                videoView.start()
+                videoView.setOnCompletionListener {
+                    thumbnailImage.isVisible = true
+                }
+            }
         }
     }
 

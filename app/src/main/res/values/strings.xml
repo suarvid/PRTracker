@@ -7,4 +7,10 @@
     <string name="lift_desc_header">Description:</string>
     <string name="weight_type_kilograms">kgs</string>
     <string name="weight_type_pounds">lbs</string>
+    <string name="sort_lifts_by">Sort By:</string>
+    <string name="exercise_alphabetical">Exercise, Alphabetical</string>
+    <string name="heaviest_first">Heaviest First</string>
+    <string name="lightest_first">Lightest First</string>
+    <string name="most_recent">Most Recent</string>
+    <string name="least_recent">Least Recent</string>
 </resources>

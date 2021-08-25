@@ -1,6 +1,7 @@
 package se.umu.arsu0013.prtracker.database
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.room.*
 import se.umu.arsu0013.prtracker.Lift
 import java.util.*

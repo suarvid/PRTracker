@@ -18,4 +18,6 @@ class LiftListViewModel : ViewModel() {
     fun deleteLift(position: Int) {
         liftRepository.deleteLift(liftListLiveData.value!![position])
     }
+
+
 }

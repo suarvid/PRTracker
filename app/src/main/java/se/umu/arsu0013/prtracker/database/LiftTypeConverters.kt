@@ -1,9 +1,13 @@
 package se.umu.arsu0013.prtracker.database
 
+import android.net.Uri
+import android.util.Log
 import androidx.room.TypeConverter
 import se.umu.arsu0013.prtracker.WeightType
 import java.lang.IllegalArgumentException
 import java.util.*
+
+private const val TAG = "LiftTypeConverters"
 
 class LiftTypeConverters {
 
@@ -41,6 +45,19 @@ class LiftTypeConverters {
     @TypeConverter
     fun fromWeightType(weightType: WeightType?): String {
         return weightType.toString()
+    }
+
+
+    @TypeConverter
+    fun fromUri(videoPath: Uri?): String {
+        Log.d(TAG, "String generated from Uri; ${videoPath.toString()}")
+        return videoPath.toString()
+    }
+
+    @TypeConverter
+    fun toUri(videoPath: String?): Uri {
+        Log.d(TAG, "String to create Uri from: $videoPath")
+        return Uri.parse(videoPath)
     }
 
 

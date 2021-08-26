@@ -11,7 +11,7 @@ import java.util.*
 
 private const val TAG = "MainActivity"
 private const val REQUEST_VIDEO_CAPTURE = 1
-class MainActivity : AppCompatActivity(), LiftListFragment.Callbacks, LiftDetailFragment.Callbacks {
+class MainActivity : AppCompatActivity(), LiftListFragment.Callbacks {
 
     private var currentFragment: Fragment? = null
     private var currentLiftId: UUID? = null
@@ -41,15 +41,6 @@ class MainActivity : AppCompatActivity(), LiftListFragment.Callbacks, LiftDetail
     }
 
 
-    //TODO: Maybe will work if this is done in the actual fragment instead of here
-    override fun dispatchTakeVideoIntent(liftId: UUID) {
-
-        currentLiftId = liftId
-        val videoUri = Uri.parse(this.filesDir.absolutePath.plus(liftId.toString()))
-        Log.d(TAG, "Saving video file to uri $videoUri")
-        val intent: Intent = ActivityResultContracts.TakeVideo().createIntent(this, videoUri)
-        startActivityForResult(intent, REQUEST_VIDEO_CAPTURE)
-    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_VIDEO_CAPTURE && resultCode == RESULT_OK) {

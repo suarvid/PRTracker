@@ -17,8 +17,7 @@ class LiftRepository private constructor(context: Context) {
         context.applicationContext,
         LiftDatabase::class.java,
         DATABASE_NAME
-    ).addMigrations(migration_1_2)
-        .build()
+    ).build()
 
     private val liftDao = database.liftDao()
     private val executor = Executors.newSingleThreadExecutor()

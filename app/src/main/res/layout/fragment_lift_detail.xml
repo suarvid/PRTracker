@@ -7,24 +7,14 @@
 
     <VideoView
         android:id="@+id/videoViewLift"
-        android:layout_width="380dp"
-        android:layout_height="360dp"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/exerciseHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="36dp"
-        android:layout_marginTop="24dp"
-        android:text="@string/lift_exercise_header"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/videoViewLift" />
 
     <TextView
         android:id="@+id/weightHeader"
@@ -72,12 +62,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="64dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="64dp"
         android:ems="10"
         android:inputType="textPersonName"
         android:text="Name"
         android:textSize="14sp"
         app:layout_constraintStart_toStartOf="@+id/exerciseHeader"
+        app:layout_constraintTop_toBottomOf="@+id/videoViewLift" />
+
+    <TextView
+        android:id="@+id/exerciseHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="36dp"
+        android:layout_marginTop="76dp"
+        android:text="@string/lift_exercise_header"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/videoViewLift" />
 
     <EditText
@@ -103,17 +103,6 @@
         app:layout_constraintStart_toStartOf="@+id/dateHeader"
         app:layout_constraintTop_toBottomOf="@+id/editTextLiftWeight" />
 
-    <ImageView
-        android:id="@+id/imageViewCameraIcon"
-        android:layout_width="380dp"
-        android:layout_height="360dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.515"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_baseline_videocam_24" />
-
     <ToggleButton
         android:id="@+id/toggleButtonWeightType"
         android:layout_width="wrap_content"
@@ -125,5 +114,39 @@
         app:layout_constraintTop_toBottomOf="@+id/editTextLiftExercise"
         android:textOff="@string/weight_type_kilograms"
         android:textOn="@string/weight_type_pounds"/>
+
+    <Button
+        android:id="@+id/buttonRecordNewVideo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:text="@string/record_new_video"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/videoViewLift" />
+
+    <Button
+        android:id="@+id/buttonSelectExistingVideo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="204dp"
+        android:layout_marginTop="4dp"
+        android:text="@string/select_existing_video"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/videoViewLift" />
+
+    <ImageView
+        android:id="@+id/imageViewVideoThumbnail"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/videoViewLift"
+        tools:srcCompat="@tools:sample/avatars" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

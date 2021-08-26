@@ -3,9 +3,14 @@ package se.umu.arsu0013.prtracker
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaDataSource
 import android.media.MediaMetadataRetriever
+import android.media.ThumbnailUtils
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.FileUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -14,28 +19,26 @@ import android.widget.*
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.Observer
-import java.io.File
+import java.io.*
+import java.lang.Exception
+import java.net.URI
 import java.util.*
+import kotlin.collections.HashMap
 
 private const val ARG_LIFT_ID = "lift_id"
 private const val ARG_VIDEO_CAPTURED = "video_captured"
 private const val TAG = "LiftDetailFragment"
 private const val DIALOG_DATE = "DialogDate"
 private const val REQUEST_DATE = 0
-private const val REQUEST_VIDEO_CAPTURE = 1
-private const val RESULT_OK = -1
+
 
 class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
 
-    interface Callbacks {
-        fun dispatchTakeVideoIntent(liftId: UUID)
-    }
 
-    private var callbacks: Callbacks? = null
-    private lateinit var videoUri: Uri
     private var videoCaptured: Boolean? = null
     private lateinit var lift: Lift
     private lateinit var exerciseText: EditText
@@ -45,13 +48,42 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
     private lateinit var videoView: VideoView
     private lateinit var thumbnailImage: ImageView
     private lateinit var weightTypeButton: ToggleButton
+    private lateinit var recordNewVideoButton: Button
+    private lateinit var selectExistingVideoButton: Button
 
 
-    val launcher = registerForActivityResult<Uri, Bitmap>(
-        ActivityResultContracts.TakeVideo()) {
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private val selectVideoResult =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            // Here we want to copy the selected file to the "conventional" uri
+            uri?.let {
+                val inputStream = requireContext().contentResolver.openInputStream(uri)
+                val outputStream =
+                    requireContext().contentResolver.openOutputStream(this.lift.videoPath)
 
+                try {
+                    if (inputStream != null && outputStream != null) {
+                        FileUtils.copy(inputStream, outputStream)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            configureVideoView()
+            this.thumbnailImage.isVisible = true
+            saveLift(lift)
+            Log.d(TAG, "Uri of selected video is: $uri")
+            Log.d(TAG, "Uri of lift video is: ${this.lift.videoPath}")
+            Log.d(TAG, "Thumbnail Image visible: ${thumbnailImage.isVisible}")
+        }
+
+
+    private val recordVideoResult = registerForActivityResult(ActivityResultContracts.TakeVideo()) {
+        configureVideoView()
+        this.thumbnailImage.isVisible = true
+        saveLift(lift)
+        Log.d(TAG, "Thumbnail Image visible: ${thumbnailImage.isVisible}")
     }
-
 
     private val liftDetailViewModel: LiftDetailViewModel by lazy {
         ViewModelProvider(this).get(LiftDetailViewModel::class.java)
@@ -69,11 +101,6 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
                 arguments = args
             }
         }
-    }
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        callbacks = context as Callbacks?
     }
 
 
@@ -99,9 +126,10 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
         dateButton = view.findViewById(R.id.buttonDate) as Button
         descriptionText = view.findViewById(R.id.editTextDescription) as EditText
         videoView = view.findViewById(R.id.videoViewLift) as VideoView
-        thumbnailImage = view.findViewById(R.id.imageViewCameraIcon) as ImageView
         weightTypeButton = view.findViewById(R.id.toggleButtonWeightType) as ToggleButton
-
+        thumbnailImage = view.findViewById(R.id.imageViewVideoThumbnail) as ImageView
+        recordNewVideoButton = view.findViewById(R.id.buttonRecordNewVideo) as Button
+        selectExistingVideoButton = view.findViewById(R.id.buttonSelectExistingVideo) as Button
         return view
     }
 
@@ -112,13 +140,17 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
             Observer { lift ->
                 lift?.let {
                     this.lift = lift
+                    Log.d(TAG, "Lift videoPath is: ${this.lift.videoPath}")
+                    configureVideoPath()
                     updateUI()
                 }
             }
         )
+
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onStart() {
         super.onStart()
         dateButton.setOnClickListener {
@@ -129,13 +161,7 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
             }
         }
 
-        thumbnailImage.setOnClickListener {
-            dispatchTakeVideoIntent()
-        }
-
-        videoView.setOnClickListener {
-            dispatchTakeVideoIntent()
-        }
+        setOnClickListeners()
 
     }
 
@@ -147,16 +173,12 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
     }
 
 
-    override fun onDetach() {
-        super.onDetach()
-        callbacks = null
-    }
-
     private fun saveLift(lift: Lift) {
         lift.exercise = exerciseText.text.toString()
         lift.weight = weightText.text.toString().toInt()
         saveLiftDate(lift)
         lift.description = descriptionText.text.toString()
+        Log.d(TAG, "lift video uri in saveLift(): ${lift.videoPath}")
         liftDetailViewModel.saveLift(lift)
     }
 
@@ -180,9 +202,31 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
             WeightType.POUNDS -> weightTypeButton.isChecked = true
         }
         configureWeightTypeButton()
-        configureVideoUri()
         configureVideoView()
+        configureThumbnail()
+    }
 
+    private fun configureThumbnail() {
+        thumbnailImage.isVisible = videoFileExists()
+        try {
+            val metaDataRetriever = MediaMetadataRetriever()
+            metaDataRetriever.setDataSource(requireContext(), lift.videoPath)
+            val bitMap = metaDataRetriever.frameAtTime
+            thumbnailImage.setImageBitmap(Bitmap.createScaledBitmap(bitMap!!, 560, 480, true))
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        //TODO: Kopiera över den valda filen så att videons uri alltid pekar på den här mappen
+        // plus lyftets id plus file extension, borde göra så att appen inte kraschar
+        thumbnailImage.setOnClickListener {
+            thumbnailImage.isVisible = false
+            videoView.start()
+            videoView.setOnCompletionListener {
+                thumbnailImage.isVisible = true
+            }
+        }
     }
 
 
@@ -202,31 +246,23 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
     }
 
 
-    //TODO: Change this to registerForActivityResult instead of this deprecated way
-    private fun dispatchTakeVideoIntent() {
+    private fun configureVideoPath() {
         val dir = requireContext().filesDir
         val file = File(dir, lift.id.toString().plus(".mp4"))
-        val videoUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.fileprovider", file)
-        this.videoUri = videoUri
-        val intent: Intent = ActivityResultContracts.TakeVideo().createIntent(requireContext(), videoUri)
-        startActivityForResult(intent, REQUEST_VIDEO_CAPTURE)
+        this.lift.videoPath = FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            file
+        )
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == REQUEST_VIDEO_CAPTURE && resultCode == RESULT_OK) {
-            Log.d(TAG, "Request Code OK on REQUEST_VIDEO_CAPTURE with Uri $videoUri")
-            val dir = requireContext().filesDir
-            configureVideoView()
-
-            Log.d(TAG, "onActivityResult")
-        }
+    private fun recordNewVideo() {
+        recordVideoResult.launch(this.lift.videoPath)
     }
 
-    private fun configureVideoUri() {
-        val dir = requireContext().filesDir
-        val file = File(dir, lift.id.toString().plus(".mp4"))
-        this.videoUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.fileprovider", file)
-    }
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun selectVideoFromGallery() = selectVideoResult.launch("video/*")
+
 
     /*
         TODO: Clean this up, and make sure that the black image with a camera does not flash
@@ -237,27 +273,23 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
         if (videoFileExists()) {
             val mediaController = MediaController(requireContext())
             videoView.setMediaController(mediaController)
-            thumbnailImage.isVisible = false
-            videoView.setVideoURI(videoUri)
-            val metaDataRetreiver = MediaMetadataRetriever()
-            metaDataRetreiver.setDataSource(requireContext(), videoUri)
-            val bitMap = metaDataRetreiver.frameAtTime
-            thumbnailImage.setImageBitmap(bitMap)
-            thumbnailImage.isVisible = true
-            thumbnailImage.setOnClickListener {
-                thumbnailImage.isVisible = false
-                videoView.start()
-                videoView.setOnCompletionListener {
-                    thumbnailImage.isVisible = true
-                }
-            }
+            videoView.setVideoURI(this.lift.videoPath)
         }
     }
 
     private fun videoFileExists(): Boolean {
-        val dir = requireContext().filesDir
-        val file = File(dir, lift.id.toString().plus(".mp4"))
-        Log.d(TAG, "File with uri: $videoUri exists: ${file.exists()}")
-        return file.exists()
+        return this.lift.videoPath.toString() != ""
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun setOnClickListeners() {
+        recordNewVideoButton.setOnClickListener {
+            recordNewVideo()
+        }
+
+        selectExistingVideoButton.setOnClickListener {
+            selectVideoFromGallery()
+        }
     }
 }

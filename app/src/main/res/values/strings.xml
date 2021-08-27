@@ -11,8 +11,8 @@
     <string name="exercise_alphabetical">Exercise, Alphabetical</string>
     <string name="heaviest_first">Heaviest First</string>
     <string name="lightest_first">Lightest First</string>
-    <string name="most_recent">Most Recent</string>
-    <string name="least_recent">Least Recent</string>
+    <string name="most_recent">Most Recent First</string>
+    <string name="least_recent">Least Recent First</string>
     <string name="record_new_video">Record New Video</string>
     <string name="select_existing_video">Select Existing Video</string>
 </resources>

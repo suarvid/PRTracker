@@ -24,7 +24,7 @@ class DatePickerFragment: DialogFragment() {
 
             val resultDate: Date = GregorianCalendar(year, month, day).time
 
-            // TODO: Fix use of deprecated targetFragment if there is time
+            // Fix deprecated call if there is time
             targetFragment?.let { fragment ->
                 (fragment as Callbacks).onDateSelected(resultDate)
             }

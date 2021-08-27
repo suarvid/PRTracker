@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import se.umu.arsu0013.prtracker.Lift
 
-@Database(entities = [ Lift::class ], version = 3)
+@Database(entities = [ Lift::class ], version = 4)
 @TypeConverters(LiftTypeConverters::class)
 abstract class LiftDatabase : RoomDatabase() {
     abstract fun liftDao(): LiftDao

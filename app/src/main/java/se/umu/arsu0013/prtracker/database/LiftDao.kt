@@ -16,7 +16,7 @@ interface LiftDao {
     fun getLiftById(id: UUID): LiveData<Lift?>
 
     @Query("SELECT * from lift WHERE weight > (:weight)")
-    fun getLiftsOverWeight(weight: Int): LiveData<List<Lift>>
+    fun getLiftsOverWeight(weight: Double): LiveData<List<Lift>>
 
     @Query("SELECT * from lift WHERE exercise = (:exercise)")
     fun getLiftsWithExercise(exercise: String): LiveData<List<Lift>>
@@ -29,5 +29,9 @@ interface LiftDao {
 
     @Delete
     fun deleteLift(lift: Lift)
+
+    // Maybe a bit ugly to use a @Query for deletion
+    @Query("DELETE FROM lift WHERE id=(:id)")
+    fun deleteLiftWithId(id: UUID)
 
 }

@@ -13,13 +13,12 @@ private const val TAG = "MainActivity"
 private const val REQUEST_VIDEO_CAPTURE = 1
 class MainActivity : AppCompatActivity(), LiftListFragment.Callbacks {
 
-    private var currentFragment: Fragment? = null
     private var currentLiftId: UUID? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
         if (currentFragment == null) {
             val fragment = LiftListFragment.newInstance()
             supportFragmentManager

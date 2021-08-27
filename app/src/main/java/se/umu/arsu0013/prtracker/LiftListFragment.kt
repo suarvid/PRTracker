@@ -72,9 +72,12 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
         liftRecyclerView.layoutManager = LinearLayoutManager(context)
         liftRecyclerView.adapter = adapter
 
+        // Have to delete with id, as position of holder varies with sorting
         val swipeHandler = object : SwipeDeleteCallback(requireContext()) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                liftListViewModel.deleteLift(viewHolder.absoluteAdapterPosition)
+                val liftHolder = viewHolder as LiftHolder
+                val liftId = liftHolder.getLiftId()
+                liftListViewModel.deleteLiftWithId(liftId)
             }
         }
 
@@ -88,19 +91,6 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
     }
 
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        liftListViewModel.liftListLiveData.observe(
-            viewLifecycleOwner,
-            Observer { lifts ->
-                lifts?.let {
-                    Log.d(TAG, "Received ${lifts.size} lifts from database")
-                    updateUI(lifts)
-                }
-            }
-        )
-    }
-
 
     override fun onDetach() {
         super.onDetach()
@@ -112,6 +102,18 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
         inflater.inflate(R.menu.fragment_lift_list, menu)
         sortSpinner = menu.findItem(R.id.sort_lists).actionView as Spinner
         configureSortSpinner()
+
+
+        liftListViewModel.liftListLiveData.observe(
+            viewLifecycleOwner,
+            Observer { lifts ->
+                // Spinner has to be configured before this can be done
+                lifts?.let {
+                    Log.d(TAG, "Received ${lifts.size} lifts from database")
+                    sortByCurrentSelection(lifts)?.let { lifts -> updateUI(lifts) }
+                }
+            }
+        )
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -121,7 +123,7 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
 
 
     private fun updateUI(lifts: List<Lift>) {
-        adapter = LiftAdapter(lifts)
+        adapter = sortByCurrentSelection(lifts)?.let { LiftAdapter(it) }
         liftRecyclerView.adapter = adapter
     }
 
@@ -144,6 +146,7 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
         private val dateTextView: TextView = itemView.findViewById(R.id.lift_date)
         private val exerciseTextView: TextView = itemView.findViewById(R.id.lift_exercise)
         private val weightTextView: TextView = itemView.findViewById(R.id.lift_weight)
+        private val weightTypeTextView: TextView = itemView.findViewById(R.id.lift_weight_type)
 
         init {
             // itemView is the view for the entire row
@@ -155,12 +158,15 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
             dateTextView.text = DateTextFormatter.format(lift.date)
             exerciseTextView.text = this.lift.exercise
             weightTextView.text = this.lift.weight.toString()
+            weightTypeTextView.text = this.lift.weightType.toString()
         }
 
 
         override fun onClick(v: View?) {
             callbacks?.onLiftSelected(lift.id)
         }
+
+        fun getLiftId() = this.lift.id
     }
 
 
@@ -177,19 +183,19 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
 
         // Do only minimal work in this function, otherwise the scrolling won't be smooth
         override fun onBindViewHolder(holder: LiftHolder, position: Int) {
-            val lift = lifts[position]
-            holder.bind(lift)
+            val lift = sortByCurrentSelection(lifts)?.get(position)
+            lift?.let { holder.bind(it) }
         }
     }
 
 
     private fun configureSortSpinner() {
         val spinnerStringArray = arrayListOf<String>(
-            getString(R.string.exercise_alphabetical),
+            getString(R.string.most_recent),
+            getString(R.string.least_recent),
             getString(R.string.heaviest_first),
             getString(R.string.lightest_first),
-            getString(R.string.most_recent),
-            getString(R.string.least_recent)
+            getString(R.string.exercise_alphabetical)
         )
 
         val arrayAdapter = ArrayAdapter(
@@ -201,16 +207,30 @@ class LiftListFragment : Fragment(), AdapterView.OnItemSelectedListener {
         sortSpinner.onItemSelectedListener = this
     }
 
+    private fun sortByCurrentSelection(lifts: List<Lift>): List<Lift>? {
+        val manager = SortLiftManager()
+        return when(sortSpinner.selectedItem.toString()) {
+            getString(R.string.exercise_alphabetical) -> manager.sortByAlphabetical(lifts)
+            getString(R.string.most_recent) -> manager.sortByMostRecentFirst(lifts)
+            getString(R.string.least_recent) -> manager.sortByLeastRecentFirst(lifts)
+            getString(R.string.heaviest_first) -> manager.sortByHeaviestFirst(lifts)
+            getString(R.string.lightest_first) -> manager.sortByLightestFirst(lifts)
+            else -> manager.sortByMostRecentFirst(lifts)
+        }
+    }
+
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-        //TODO: fix !!-call
-        updateUI(
-            SortLiftManager().onItemSelected(
-                requireContext(),
-                parent,
-                position,
-                liftListViewModel.liftListLiveData.value
-            )!!
-        )
+        val manager = SortLiftManager()
+        manager.onItemSelected(
+            requireContext(),
+            parent,
+            position,
+            liftListViewModel.liftListLiveData.value
+        )?.let {
+            updateUI(
+                it
+            )
+        }
     }
 
     override fun onNothingSelected(p0: AdapterView<*>?) {

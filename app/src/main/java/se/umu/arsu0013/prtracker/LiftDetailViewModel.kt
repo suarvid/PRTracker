@@ -13,6 +13,7 @@ class LiftDetailViewModel : ViewModel() {
 
     private val liftRepository = LiftRepository.getInstance()
     private val liftIdLiveData = MutableLiveData<UUID>()
+    var lift: Lift? = null
 
 
     // viewModels should not expose MutableLiveData

@@ -4,8 +4,10 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Users/arvid/AndroidStudioProjects/PRTracker/app/src/main/res/layout/fragment_lift_detail.xml" value="0.7188612099644128" />
+        <entry key="app/src/main/res/layout-land/fragment_lift_detail.xml" value="0.33" />
         <entry key="app/src/main/res/layout/fragment_lift_detail.xml" value="0.2921875" />
         <entry key="app/src/main/res/layout/fragment_lift_list.xml" value="0.29583333333333334" />
+        <entry key="app/src/main/res/layout/list_item_lift.xml" value="0.34695945945945944" />
         <entry key="app/src/main/res/menu/fragment_lift_list.xml" value="0.29583333333333334" />
       </map>
     </option>

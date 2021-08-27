@@ -11,13 +11,15 @@ import java.util.concurrent.Executors
 
 private const val DATABASE_NAME = "lift-database"
 private const val TAG = "LiftRepository"
+
 class LiftRepository private constructor(context: Context) {
 
     private val database: LiftDatabase = Room.databaseBuilder(
         context.applicationContext,
         LiftDatabase::class.java,
         DATABASE_NAME
-    ).build()
+    ).fallbackToDestructiveMigration()
+        .build()
 
     private val liftDao = database.liftDao()
     private val executor = Executors.newSingleThreadExecutor()
@@ -26,7 +28,8 @@ class LiftRepository private constructor(context: Context) {
 
     fun getLiftById(id: UUID): LiveData<Lift?> = liftDao.getLiftById(id)
 
-    fun getLiftsOverWeight(weight: Int): LiveData<List<Lift>> = liftDao.getLiftsOverWeight(weight)
+    fun getLiftsOverWeight(weight: Double): LiveData<List<Lift>> =
+        liftDao.getLiftsOverWeight(weight)
 
     fun getLiftsWithExercise(exercise: String) = liftDao.getLiftsWithExercise(exercise)
 
@@ -49,6 +52,12 @@ class LiftRepository private constructor(context: Context) {
         }
     }
 
+    fun deleteLiftWithId(id: UUID) {
+        executor.execute {
+            liftDao.deleteLiftWithId(id)
+        }
+    }
+
     companion object {
         private var INSTANCE: LiftRepository? = null
 
@@ -61,8 +70,8 @@ class LiftRepository private constructor(context: Context) {
         // might be better to just initialize it instead of throwing an exception?
         // although that requires a context object, so might not always work as we want it to
         fun getInstance(): LiftRepository {
-            return INSTANCE ?:
-            throw IllegalStateException("LiftRepository must be initialized before access")
+            return INSTANCE
+                ?: throw IllegalStateException("LiftRepository must be initialized before access")
         }
     }
 }

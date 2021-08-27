@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.Observer
 import java.io.*
@@ -40,7 +41,6 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
 
 
     private var videoCaptured: Boolean? = null
-    private lateinit var lift: Lift
     private lateinit var exerciseText: EditText
     private lateinit var weightText: EditText
     private lateinit var dateButton: Button
@@ -59,7 +59,10 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
             uri?.let {
                 val inputStream = requireContext().contentResolver.openInputStream(uri)
                 val outputStream =
-                    requireContext().contentResolver.openOutputStream(this.lift.videoPath)
+                    liftDetailViewModel.lift?.let { it1 ->
+                        requireContext().contentResolver.openOutputStream(
+                            it1.videoPath)
+                    }
 
                 try {
                     if (inputStream != null && outputStream != null) {
@@ -69,19 +72,19 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
                     e.printStackTrace()
                 }
             }
+            configureThumbnail()
             configureVideoView()
-            this.thumbnailImage.isVisible = true
-            saveLift(lift)
+            //saveLift(lift)
             Log.d(TAG, "Uri of selected video is: $uri")
-            Log.d(TAG, "Uri of lift video is: ${this.lift.videoPath}")
+            Log.d(TAG, "Uri of lift video is: ${liftDetailViewModel.lift?.videoPath}")
             Log.d(TAG, "Thumbnail Image visible: ${thumbnailImage.isVisible}")
         }
 
 
     private val recordVideoResult = registerForActivityResult(ActivityResultContracts.TakeVideo()) {
+        configureThumbnail()
         configureVideoView()
-        this.thumbnailImage.isVisible = true
-        saveLift(lift)
+        //saveLift(lift)
         Log.d(TAG, "Thumbnail Image visible: ${thumbnailImage.isVisible}")
     }
 
@@ -106,12 +109,10 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        lift = Lift()
         val liftId: UUID = arguments?.getSerializable(ARG_LIFT_ID) as UUID
         videoCaptured = arguments?.getSerializable(ARG_VIDEO_CAPTURED) as Boolean
         Log.d(TAG, "lift id received from args bundle: $liftId")
         liftDetailViewModel.loadLift(liftId)
-
     }
 
 
@@ -139,8 +140,8 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
             viewLifecycleOwner,
             Observer { lift ->
                 lift?.let {
-                    this.lift = lift
-                    Log.d(TAG, "Lift videoPath is: ${this.lift.videoPath}")
+                    liftDetailViewModel.lift = lift
+                    Log.d(TAG, "Lift videoPath is: ${liftDetailViewModel.lift!!.videoPath}")
                     configureVideoPath()
                     updateUI()
                 }
@@ -154,10 +155,12 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
     override fun onStart() {
         super.onStart()
         dateButton.setOnClickListener {
-            //TODO: fix these deprecated calls if there is time
-            DatePickerFragment.newInstance(lift.date).apply {
-                setTargetFragment(this@LiftDetailFragment, REQUEST_DATE)
-                show(this@LiftDetailFragment.requireFragmentManager(), DIALOG_DATE)
+            // fix deprecated calls if there is time
+            liftDetailViewModel.lift?.let { lift ->
+                DatePickerFragment.newInstance(lift.date).apply {
+                    setTargetFragment(this@LiftDetailFragment, REQUEST_DATE)
+                    show(this@LiftDetailFragment.requireFragmentManager(), DIALOG_DATE)
+                }
             }
         }
 
@@ -167,15 +170,15 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
 
     // in order to automatically save edits when the user exits the detail view
     override fun onStop() {
-        Log.d(TAG, "Saved lift with id ${lift.id}")
+        Log.d(TAG, "Saved lift with id ${liftDetailViewModel.lift?.id}")
         super.onStop()
-        saveLift(this.lift)
+        liftDetailViewModel.lift?.let { saveLift(it) }
     }
 
 
     private fun saveLift(lift: Lift) {
         lift.exercise = exerciseText.text.toString()
-        lift.weight = weightText.text.toString().toInt()
+        lift.weight = weightText.text.toString().toDouble()
         saveLiftDate(lift)
         lift.description = descriptionText.text.toString()
         Log.d(TAG, "lift video uri in saveLift(): ${lift.videoPath}")
@@ -193,11 +196,11 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
     }
 
     private fun updateUI() {
-        exerciseText.setText(lift.exercise)
-        weightText.setText(lift.weight.toString())
-        descriptionText.setText(lift.description)
-        dateButton.text = DateTextFormatter.format(lift.date)
-        when (lift.weightType) {
+        exerciseText.setText(liftDetailViewModel.lift?.exercise)
+        weightText.setText(liftDetailViewModel.lift?.weight.toString())
+        descriptionText.setText(liftDetailViewModel.lift?.description)
+        dateButton.text = liftDetailViewModel.lift?.let { DateTextFormatter.format(it.date) }
+        when (liftDetailViewModel.lift?.weightType) {
             WeightType.KILOGRAMS -> weightTypeButton.isChecked = false
             WeightType.POUNDS -> weightTypeButton.isChecked = true
         }
@@ -207,19 +210,18 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
     }
 
     private fun configureThumbnail() {
-        thumbnailImage.isVisible = videoFileExists()
         try {
             val metaDataRetriever = MediaMetadataRetriever()
-            metaDataRetriever.setDataSource(requireContext(), lift.videoPath)
-            val bitMap = metaDataRetriever.frameAtTime
-            thumbnailImage.setImageBitmap(Bitmap.createScaledBitmap(bitMap!!, 560, 480, true))
-
+            if (videoFileExists()) {
+                metaDataRetriever.setDataSource(requireContext(), liftDetailViewModel.lift?.videoPath)
+                val bitMap = metaDataRetriever.frameAtTime
+                thumbnailImage.setImageBitmap(Bitmap.createScaledBitmap(bitMap!!, 900, 1024, true))
+            }
         } catch (e: Exception) {
+            Log.d(TAG, "Exception thrown in configureThumbnail()")
             e.printStackTrace()
         }
 
-        //TODO: Kopiera över den valda filen så att videons uri alltid pekar på den här mappen
-        // plus lyftets id plus file extension, borde göra så att appen inte kraschar
         thumbnailImage.setOnClickListener {
             thumbnailImage.isVisible = false
             videoView.start()
@@ -232,53 +234,55 @@ class LiftDetailFragment : Fragment(), DatePickerFragment.Callbacks {
 
     private fun configureWeightTypeButton() {
         weightTypeButton.setOnClickListener {
-            lift.weightType = when (lift.weightType) {
+            liftDetailViewModel.lift?.weightType = when (liftDetailViewModel.lift?.weightType) {
                 WeightType.KILOGRAMS -> WeightType.POUNDS
                 WeightType.POUNDS -> WeightType.KILOGRAMS
+                else -> WeightType.KILOGRAMS
             }
         }
     }
 
 
     override fun onDateSelected(date: Date) {
-        lift.date = date
+        liftDetailViewModel.lift?.date = date
         dateButton.text = DateTextFormatter.format(date)
     }
 
 
     private fun configureVideoPath() {
         val dir = requireContext().filesDir
-        val file = File(dir, lift.id.toString().plus(".mp4"))
-        this.lift.videoPath = FileProvider.getUriForFile(
+        val file = File(dir, liftDetailViewModel.lift?.id.toString().plus(".mp4"))
+        liftDetailViewModel.lift?.videoPath = FileProvider.getUriForFile(
             requireContext(),
             "${requireContext().packageName}.fileprovider",
             file
         )
     }
 
+
     private fun recordNewVideo() {
-        recordVideoResult.launch(this.lift.videoPath)
+        recordVideoResult.launch(liftDetailViewModel.lift?.videoPath)
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun selectVideoFromGallery() = selectVideoResult.launch("video/*")
 
 
-    /*
-        TODO: Clean this up, and make sure that the black image with a camera does not flash
-        before the image changes to the existing thumbnail
-        Probably only have to change the order of function calls
-     */
     private fun configureVideoView() {
+
+        val mediaController = MediaController(requireContext())
+        videoView.setMediaController(mediaController)
         if (videoFileExists()) {
-            val mediaController = MediaController(requireContext())
-            videoView.setMediaController(mediaController)
-            videoView.setVideoURI(this.lift.videoPath)
+            videoView.setVideoURI(liftDetailViewModel.lift?.videoPath)
         }
     }
 
+
     private fun videoFileExists(): Boolean {
-        return this.lift.videoPath.toString() != ""
+        val dir = requireContext().filesDir
+        val file = File(dir, liftDetailViewModel.lift?.id.toString().plus(".mp4"))
+        Log.d(TAG, "Length of video file: ${file.length()}")
+        return file.length() != 0L
     }
 
 

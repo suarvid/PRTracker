@@ -1,26 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:padding="32dp"
+    android:gravity="center_horizontal">
 
     <TextView
         android:id="@+id/lift_exercise"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Lift Exercise"/>
+        android:text="Lift Exercise"
+        android:paddingHorizontal="8dp"
+        android:textSize="18sp"/>
 
     <TextView
         android:id="@+id/lift_weight"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Lift Weight"/>
+        android:text="Lift Weight"
+        android:paddingStart="8dp"
+        android:paddingEnd="2dp"
+        android:textSize="18sp"/>
+
+    <TextView
+        android:id="@+id/lift_weight_type"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="kg"
+        android:paddingStart="4dp"
+        android:paddingEnd="8dp"
+        android:textSize="14sp"
+        />
 
     <TextView
         android:id="@+id/lift_date"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Lift Date"/>
+        android:text="Lift Date"
+        android:paddingHorizontal="8dp"
+        android:textSize="18sp"/>
 
 </LinearLayout>
